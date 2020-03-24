@@ -1,0 +1,9 @@
+/.classpath
+/.idea
+/*.iml
+/bin/config/*.class
+/bin/helper/*.class
+/bin/main
+/.settings
+/bin/net/*.class
+/bin/snd/*.class
