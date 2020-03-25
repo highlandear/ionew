@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Queue;
 
 public abstract class NetRunnable implements Runnable {
 
@@ -50,7 +51,7 @@ public abstract class NetRunnable implements Runnable {
 						try {
 							onReadable(k);
 						} catch (IOException e) {
-							//e.printStackTrace();
+							// e.printStackTrace();
 							onBadRead(k);
 						}
 					} else if (k.isWritable()) {
@@ -66,7 +67,7 @@ public abstract class NetRunnable implements Runnable {
 				e.printStackTrace();
 			} finally {
 				if (!running) {
-					try {						
+					try {
 						for (SelectionKey key : sel.keys())
 							onClose(key);
 						sel.close();
@@ -85,7 +86,7 @@ public abstract class NetRunnable implements Runnable {
 		Connectee c = new Connectee(l);
 		channel.configureBlocking(false);
 		c.attachKey(channel.register(sel, SelectionKey.OP_READ, c));
-		
+
 		System.out.println(channel.getRemoteAddress() + "------> ");
 		System.out.println("rev buff size:" + channel.socket().getReceiveBufferSize());
 	}
@@ -98,7 +99,7 @@ public abstract class NetRunnable implements Runnable {
 		if (!ch.finishConnect())
 			throw new IOException("cannot connect");
 		k.interestOps(SelectionKey.OP_READ);
-		
+
 		System.out.println(ch.getRemoteAddress() + "：connect OK!");
 	}
 
@@ -107,24 +108,29 @@ public abstract class NetRunnable implements Runnable {
 		SocketChannel ch = (SocketChannel) k.channel();
 		Conn conn = (Conn) k.attachment();
 		ByteBuffer rb = conn.getReadBuffer();
-		synchronized (rb) {	
-			
-			rb.clear();
-			int num = ch.read(rb);
-			rb.flip();
-			if (num == -1) {
-				System.out.println(ch.getRemoteAddress() + " --X--");
-				ch.close();
-				return;
-			}
+		// synchronized (rb) {
+		rb.clear();
+		int num = ch.read(rb);
+		rb.flip();
+		if (num == -1) {
+			System.out.println(ch.getRemoteAddress() + " --X--");
+			ch.close();
+			return;
 		}
-	
-		conn.run();
+		// }
+
+		conn.collect(toNewBytes(rb));
 		k.interestOps(SelectionKey.OP_READ);
-	//	System.out.println(name + " recv:[" + new String(rb.array(), 0, rb.limit()) + "] " + rb.limit() );
 	}
 
-	private void onBadRead(SelectionKey k) throws IOException{
+	private byte[] toNewBytes(ByteBuffer bb) {
+		byte[] dst = new byte[bb.limit()];
+		bb.get(dst, 0, bb.limit());
+
+		return dst;
+	}
+
+	private void onBadRead(SelectionKey k) throws IOException {
 		SocketChannel ch = (SocketChannel) k.channel();
 		System.out.println(ch.getRemoteAddress() + "：connect OVER!");
 		onClose(k);
@@ -133,13 +139,17 @@ public abstract class NetRunnable implements Runnable {
 	private void onWritable(SelectionKey k) throws IOException {
 		SocketChannel channel = (SocketChannel) k.channel();
 		Conn conn = (Conn) k.attachment();
-		ByteBuffer wb = conn.getWriteBuffer();
-		synchronized (wb) {
-			wb.flip();
-			channel.write(wb);
+		Queue<ByteBuffer> wbs = conn.getWriteBuffer();
+
+		synchronized (wbs) {
+			if (!wbs.isEmpty()) {
+				ByteBuffer [] bs = wbs.toArray(new ByteBuffer[0]);		
+				channel.write(bs);
+				wbs.clear();
+			}
 			k.interestOps(k.interestOps() & ~SelectionKey.OP_WRITE);
-			
-			System.out.println(name + " send:{" + new String(wb.array()) + "}" + wb.limit());
+
+	//		System.out.println(name + " send:{" + new String(wb.array()) + "}" + wb.limit());
 		}
 	}
 
