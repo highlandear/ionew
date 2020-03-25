@@ -19,6 +19,7 @@ private CmdInput cmd = new CmdInput(this);
 	{
 		ns.open();
 		ns.addListener(10075);
+		ns.addListener(10076);
 		ns.setRunning();		
 		new Thread(ns).start();
 	}

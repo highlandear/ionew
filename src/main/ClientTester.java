@@ -4,19 +4,16 @@ import helper.CmdInput;
 import helper.Dosth;
 import net.Connector;
 import net.NioClient;
-import snd.TestProtocol;
 
 public class ClientTester implements Dosth {
-	
-	private CmdInput cmd = new CmdInput(this);
 	
 	private NioClient nc = new NioClient("HZSClient");
 	
 	private Connector connector = null;
 	
-	public void input()
+	public void waitInput()
 	{
-		cmd.input();
+		new CmdInput(this).input();
 	}
 	
 	public void connect()
@@ -52,14 +49,7 @@ public class ClientTester implements Dosth {
 	}
 	
 	public static void main(String[] args) {
-		ClientTester c = new ClientTester();	
-		
-	//	c.connect();
-		
-		c.input();
-		
-	//	c.disconnect();
-		
+		new ClientTester().waitInput();			
 	}
 
 }

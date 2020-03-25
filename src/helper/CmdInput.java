@@ -17,7 +17,7 @@ public class CmdInput
 		scan.useDelimiter("\n");
 		while (true) 
 		{
-			System.out.print("enter");
+			System.out.print("input:");
 			String str = scan.next();
 			if (null == str)
 				break;
