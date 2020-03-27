@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import config.TPoolConfig;
+import helper.Logger;
 import snd.RawProtocol;
 
 /**
@@ -21,14 +22,13 @@ import snd.RawProtocol;
  *
  */
 public abstract class Conn implements Runnable {
+	public static ThreadPoolExecutor pool = new ThreadPoolExecutor(TPoolConfig.THREAD_POOL_SIZE,
+			TPoolConfig.THREAD_POOL_SIZE, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
 	volatile private SelectionKey selKey;
 	private ByteBuffer rb = ByteBuffer.allocate(config.NetConfig.ALLOC_RECV_BUFF_SIZE);
 	private Queue<ByteBuffer> wbs = new java.util.ArrayDeque<>();
-
-	public static ThreadPoolExecutor pool = new ThreadPoolExecutor(TPoolConfig.THREAD_POOL_SIZE,
-			TPoolConfig.THREAD_POOL_SIZE, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
-	private	Queue<byte[]> msgs =  new LinkedBlockingQueue<byte[]>();
+	private ByteBuffer packs = ByteBuffer.allocate(10240);
 
 	public void attachKey(SelectionKey k) throws SocketException {
 		selKey = k;
@@ -39,20 +39,15 @@ public abstract class Conn implements Runnable {
 	}
 
 	public void send(byte[] data) {
-		ByteBuffer wb = ByteBuffer.allocate(data.length);
-		wb.flip();
-		wb.clear();
-		wb.put(data);
-		wb.flip();
-		synchronized (wbs) {			
+		ByteBuffer wb = ByteBuffer.wrap(data);
+		synchronized (wbs) {
 			wbs.add(wb);
 		}
-
 		enableWrite();
 	}
 
 	public void send(RawProtocol p) {
-		this.send(p.toBytes());
+		this.send(p.getSendData());
 	}
 
 	public void enableWrite() {
@@ -80,23 +75,44 @@ public abstract class Conn implements Runnable {
 		selKey.channel().close();
 	}
 
-	@Override
+	//@Override
 	public void run() {
-		while (!msgs.isEmpty()) {
-			byte[] b = msgs.poll();
-			ByteBuffer bf = ByteBuffer.wrap(b);
-			System.out.println(new String(b));
+		synchronized (packs) {
+			packs.flip();
+			while (packs.remaining() >= 4) {
+				int sz = packs.getInt();
+				
+				if(sz <= 0)
+				{
+					return;
+				}
+				
+				if (packs.remaining() < sz) {
+					packs.rewind();					
+					break;
+				}
 
-			/*
-			int ver = bf.getInt();
-			System.out.print("ver:" + ver);
-			*/
+				byte[] dst = new byte[sz];
+				packs.get(dst);
+				RawProtocol rp =RawProtocol.wrap(dst);
+				Logger.log(rp.toString());
+			
+			}
+			packs.compact();
 		}
 	}
 
-	public void collect(byte[] data) {
-		msgs.add(data);
-	//	System.out.println(new String(data));
+	public void collect() {
+		rb.flip();
+		byte[] bs = new byte[rb.limit()];
+		rb.get(bs);
+		rb.clear();
+
+		synchronized (packs) {
+			packs.put(bs);
+		}
+
 		pool.execute(this);
+
 	}
 }

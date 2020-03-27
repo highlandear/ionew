@@ -4,6 +4,7 @@ import helper.CmdInput;
 import helper.Dosth;
 import net.Connector;
 import net.NioClient;
+import snd.RawProtocol;
 
 public class ClientTester implements Dosth {
 	
@@ -44,8 +45,9 @@ public class ClientTester implements Dosth {
 		}
 		if(connector == null)
 			return;
-		
-		connector.send(str.getBytes());
+
+		RawProtocol rp = new RawProtocol(str.getBytes());
+		connector.send(rp.getSendData());
 	}
 	
 	public static void main(String[] args) {
