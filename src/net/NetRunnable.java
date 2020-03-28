@@ -119,21 +119,8 @@ public abstract class NetRunnable implements Runnable {
 			ch.close();
 			return;
 		}
-		/*
-		if (!rb.hasRemaining()) {
-			k.interestOps(k.interestOps() & ~SelectionKey.OP_READ);
-
-		}
-		*/
-		// }
-		/*
-		if(rb.hasRemaining())
-		{
-			return;
-		}
-		else
-		*/
 		conn.collect();
+		rb.clear();
 		k.interestOps(SelectionKey.OP_READ);
 	}
 

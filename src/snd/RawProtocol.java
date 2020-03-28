@@ -10,7 +10,7 @@ public class RawProtocol {
 	}
 
 	public String toString() {
-		return "size:" + data.length + new String(data);
+		return "size:" + data.length + "[" +  new String(data) + "]";
 	}
 
 	public ByteBuffer buff() {

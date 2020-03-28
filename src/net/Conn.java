@@ -28,7 +28,8 @@ public abstract class Conn implements Runnable {
 	volatile private SelectionKey selKey;
 	private ByteBuffer rb = ByteBuffer.allocate(config.NetConfig.ALLOC_RECV_BUFF_SIZE);
 	private Queue<ByteBuffer> wbs = new java.util.ArrayDeque<>();
-	private ByteBuffer packs = ByteBuffer.allocate(10240);
+	private ByteBuffer pack = null;
+	private ByteBuffer hold = null;
 
 	public void attachKey(SelectionKey k) throws SocketException {
 		selKey = k;
@@ -75,31 +76,13 @@ public abstract class Conn implements Runnable {
 		selKey.channel().close();
 	}
 
-	//@Override
+	@Override
 	public void run() {
-		synchronized (packs) {
-			packs.flip();
-			while (packs.remaining() >= 4) {
-				int sz = packs.getInt();
-				
-				if(sz <= 0)
-				{
-					return;
-				}
-				
-				if (packs.remaining() < sz) {
-					packs.rewind();					
-					break;
-				}
 
-				byte[] dst = new byte[sz];
-				packs.get(dst);
-				RawProtocol rp =RawProtocol.wrap(dst);
-				Logger.log(rp.toString());
-			
-			}
-			packs.compact();
+		synchronized (this) {
+			this.decode(hold);
 		}
+
 	}
 
 	public void collect() {
@@ -108,11 +91,41 @@ public abstract class Conn implements Runnable {
 		rb.get(bs);
 		rb.clear();
 
-		synchronized (packs) {
-			packs.put(bs);
+	/*	
+		synchronized (this) {
+			hold = ByteBuffer.wrap(bs);
 		}
-
+		
 		pool.execute(this);
-
+	*/
+		
+		decode(ByteBuffer.wrap(bs));
 	}
+
+	public void decode(ByteBuffer bb) {
+		if (pack == null)
+			pack = bb;
+		else if (pack.remaining() < bb.limit())
+			pack = (ByteBuffer) ByteBuffer.allocate(pack.limit() + bb.limit()).put((ByteBuffer) pack.flip()).put(bb)
+					.flip();
+
+		while (pack.remaining() >= 4) {
+			int sz = pack.getInt();
+			if (pack.remaining() < sz) {
+				pack.rewind();
+				pack.compact();
+				return;
+			}
+
+			byte[] dst = new byte[sz];
+			pack.get(dst);
+			RawProtocol rp = RawProtocol.wrap(dst);
+			Logger.log(rp.toString());
+		}
+		if (pack.hasRemaining())
+			pack.compact();
+		else
+			pack = null;
+	}
+
 }
