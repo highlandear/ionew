@@ -33,6 +33,5 @@ public class Connector extends Conn {
 	@Override
 	public String toString() {
 		return "connector to " + addr + ":" + port;
-
 	}
 }

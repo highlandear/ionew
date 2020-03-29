@@ -1,5 +1,5 @@
 package config;
 
 public class TPoolConfig {
-	public static int THREAD_POOL_SIZE = 1;
+	public static int THREAD_POOL_SIZE = 10;
 }

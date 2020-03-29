@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Queue;
 
@@ -38,7 +37,9 @@ public abstract class NetRunnable implements Runnable {
 		running = false;
 		sel.wakeup();
 	}
-
+	abstract public void onAcceptable(SelectionKey k) throws IOException;
+	
+	abstract public void onConnectable(SelectionKey k) throws IOException;
 	@Override
 	public void run() {
 		Logger.log(name + " _______RUNNING_____");
@@ -46,7 +47,6 @@ public abstract class NetRunnable implements Runnable {
 			try {
 				sel.selectedKeys().clear();
 				sel.select();
-
 				for (SelectionKey k : sel.selectedKeys()) {
 					if (k.isAcceptable()) {
 						onAcceptable(k);
@@ -85,40 +85,22 @@ public abstract class NetRunnable implements Runnable {
 		Logger.log("_____NET_STOP____");
 	}
 
-	private void onAcceptable(SelectionKey k) throws IOException {
-		SocketChannel channel = ((ServerSocketChannel) k.channel()).accept();
-		Listener l = (Listener) k.attachment();
-		Connectee c = new Connectee(l);
-		channel.configureBlocking(false);
-		c.attachKey(channel.register(sel, SelectionKey.OP_READ, c));
 
-		Logger.log(channel.getRemoteAddress() + "------> ");
-	}
-
-	private void onConnectable(SelectionKey k) throws IOException {
-		SocketChannel ch = (SocketChannel) k.channel();
-		Connector c = (Connector) k.attachment();
-		c.attachKey(k);
-
-		if (!ch.finishConnect())
-			throw new IOException("cannot connect");
-		k.interestOps(SelectionKey.OP_READ);
-
-		Logger.log(ch.getRemoteAddress() + "：connect OK!");
-	}
-
+	
 	private void onReadable(SelectionKey k) throws IOException {
 
 		SocketChannel ch = (SocketChannel) k.channel();
 		Conn conn = (Conn) k.attachment();
 		ByteBuffer rb = conn.getReadBuffer();
-		// synchronized (rb) {
+
 		int num = ch.read(rb);
 		if (num == -1) {
-			System.out.println(ch.getRemoteAddress() + " --X--");
+			Logger.log(ch.getRemoteAddress() + "disconnected x");
 			ch.close();
 			return;
 		}
+
+		Logger.log("read: " + new String(rb.array()));
 		conn.collect();
 		rb.clear();
 		k.interestOps(SelectionKey.OP_READ);
@@ -137,14 +119,12 @@ public abstract class NetRunnable implements Runnable {
 
 		synchronized (wbs) {
 			if (!wbs.isEmpty()) {
-				ByteBuffer [] bs = wbs.toArray(new ByteBuffer[0]);		
+				ByteBuffer [] bs = wbs.toArray(new ByteBuffer[0]);	
 				channel.write(bs);
 				wbs.clear();
 			}
-			k.interestOps(k.interestOps() & ~SelectionKey.OP_WRITE);
-
-		//	Logger.log(name + " send:{" + new String(wb.array()) + "}" + wb.limit());
 		}
+		k.interestOps(k.interestOps() & ~SelectionKey.OP_WRITE);
 	}
 
 	private void onClose(SelectionKey k) throws IOException {

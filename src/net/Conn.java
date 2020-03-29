@@ -12,8 +12,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import config.TPoolConfig;
-import helper.Logger;
-import snd.RawProtocol;
+import snd.Protocol;
+import snd.RawData;
 
 /**
  * Abstract Connection Entity
@@ -26,11 +26,12 @@ public abstract class Conn implements Runnable {
 			TPoolConfig.THREAD_POOL_SIZE, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
 	volatile private SelectionKey selKey;
-	private ByteBuffer rb = ByteBuffer.allocate(config.NetConfig.ALLOC_RECV_BUFF_SIZE);
+	
 	private Queue<ByteBuffer> wbs = new java.util.ArrayDeque<>();
+	private ByteBuffer rb = ByteBuffer.allocate(config.NetConfig.ALLOC_RECV_BUFF_SIZE);
+	private ByteBuffer hold = ByteBuffer.allocate(0);
 	private ByteBuffer pack = null;
-	private ByteBuffer hold = null;
-
+	
 	public void attachKey(SelectionKey k) throws SocketException {
 		selKey = k;
 		Socket socket = ((SocketChannel) k.channel()).socket();
@@ -47,16 +48,21 @@ public abstract class Conn implements Runnable {
 		enableWrite();
 	}
 
-	public void send(RawProtocol p) {
+	public void send(RawData p) {
 		this.send(p.getSendData());
 	}
 
+	public void send(Protocol p)
+	{
+		//this.send(data);
+	}
 	public void enableWrite() {
 		if (selKey == null) {
-			System.out.println("key is null");
+		//	Logger.log("key is null");
 			return;
 		}
-		selKey.interestOps(SelectionKey.OP_WRITE);
+		//selKey.interestOps(SelectionKey.OP_WRITE);
+		selKey.interestOps(selKey.interestOps() | SelectionKey.OP_WRITE);
 		selKey.selector().wakeup();
 	}
 
@@ -70,7 +76,7 @@ public abstract class Conn implements Runnable {
 
 	public void close() throws IOException {
 		if (selKey == null) {
-			System.out.println("sel key is null");
+//			Logger.log("key is null");
 			return;
 		}
 		selKey.channel().close();
@@ -78,11 +84,9 @@ public abstract class Conn implements Runnable {
 
 	@Override
 	public void run() {
-
-		synchronized (this) {
+		synchronized (hold) {
 			this.decode(hold);
 		}
-
 	}
 
 	public void collect() {
@@ -91,15 +95,11 @@ public abstract class Conn implements Runnable {
 		rb.get(bs);
 		rb.clear();
 
-	/*	
-		synchronized (this) {
+		synchronized (hold) {
 			hold = ByteBuffer.wrap(bs);
 		}
 		
 		pool.execute(this);
-	*/
-		
-		decode(ByteBuffer.wrap(bs));
 	}
 
 	public void decode(ByteBuffer bb) {
@@ -119,8 +119,8 @@ public abstract class Conn implements Runnable {
 
 			byte[] dst = new byte[sz];
 			pack.get(dst);
-			RawProtocol rp = RawProtocol.wrap(dst);
-			Logger.log(rp.toString());
+			
+			pool.execute(Protocol.newProtocol(this, RawData.wrap(dst)));
 		}
 		if (pack.hasRemaining())
 			pack.compact();

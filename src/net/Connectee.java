@@ -15,4 +15,9 @@ public class Connectee extends Conn {
 	public Listener getLisener() {
 		return listener;
 	}
+	
+	@Override
+	public String toString() {
+		return "an connectee";
+	}
 }

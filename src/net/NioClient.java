@@ -3,6 +3,7 @@ package net;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 
 public class NioClient extends NetRunnable {
 
@@ -41,4 +42,18 @@ public class NioClient extends NetRunnable {
 		return c;
 	}
 
+	@Override
+	public void onConnectable(SelectionKey k) throws IOException {
+		SocketChannel ch = (SocketChannel) k.channel();
+		if (!ch.finishConnect())
+			throw new IOException("cannot connect");
+		
+		ch.configureBlocking(false);
+		Connector cr = (Connector) k.attachment();
+		cr.attachKey(ch.register(sel, SelectionKey.OP_READ, cr));
+	}
+
+	@Override
+	public void onAcceptable(SelectionKey k) throws IOException {		
+	}
 }
