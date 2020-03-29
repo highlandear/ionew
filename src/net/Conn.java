@@ -12,6 +12,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import config.TPoolConfig;
+import helper.Logger;
+import snd.Message;
 import snd.Protocol;
 import snd.RawData;
 
@@ -26,12 +28,12 @@ public abstract class Conn implements Runnable {
 			TPoolConfig.THREAD_POOL_SIZE, 0L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
 	volatile private SelectionKey selKey;
-	
+
 	private Queue<ByteBuffer> wbs = new java.util.ArrayDeque<>();
 	private ByteBuffer rb = ByteBuffer.allocate(config.NetConfig.ALLOC_RECV_BUFF_SIZE);
 	private ByteBuffer hold = ByteBuffer.allocate(0);
 	private ByteBuffer pack = null;
-	
+
 	public void attachKey(SelectionKey k) throws SocketException {
 		selKey = k;
 		Socket socket = ((SocketChannel) k.channel()).socket();
@@ -52,16 +54,15 @@ public abstract class Conn implements Runnable {
 		this.send(p.getSendData());
 	}
 
-	public void send(Protocol p)
-	{
-		//this.send(data);
+	public void send(Protocol p) {
+		this.send(p.toRawData());
 	}
+
 	public void enableWrite() {
 		if (selKey == null) {
-		//	Logger.log("key is null");
+			// Logger.log("key is null");
 			return;
 		}
-		//selKey.interestOps(SelectionKey.OP_WRITE);
 		selKey.interestOps(selKey.interestOps() | SelectionKey.OP_WRITE);
 		selKey.selector().wakeup();
 	}
@@ -76,7 +77,7 @@ public abstract class Conn implements Runnable {
 
 	public void close() throws IOException {
 		if (selKey == null) {
-//			Logger.log("key is null");
+			// Logger.log("key is null");
 			return;
 		}
 		selKey.channel().close();
@@ -98,7 +99,7 @@ public abstract class Conn implements Runnable {
 		synchronized (hold) {
 			hold = ByteBuffer.wrap(bs);
 		}
-		
+
 		pool.execute(this);
 	}
 
@@ -119,8 +120,7 @@ public abstract class Conn implements Runnable {
 
 			byte[] dst = new byte[sz];
 			pack.get(dst);
-			
-			pool.execute(Protocol.newProtocol(this, RawData.wrap(dst)));
+			Message.decode(this, dst);
 		}
 		if (pack.hasRemaining())
 			pack.compact();

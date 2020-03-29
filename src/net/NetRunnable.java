@@ -56,7 +56,7 @@ public abstract class NetRunnable implements Runnable {
 						try {
 							onReadable(k);
 						} catch (IOException e) {
-							// e.printStackTrace();
+							//e.printStackTrace();
 							onBadRead(k);
 						}
 					} else if (k.isWritable()) {
@@ -99,8 +99,6 @@ public abstract class NetRunnable implements Runnable {
 			ch.close();
 			return;
 		}
-
-		Logger.log("read: " + new String(rb.array()));
 		conn.collect();
 		rb.clear();
 		k.interestOps(SelectionKey.OP_READ);

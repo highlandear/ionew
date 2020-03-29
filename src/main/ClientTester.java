@@ -4,6 +4,7 @@ import helper.CmdInput;
 import helper.Dosth;
 import net.Connector;
 import net.NioClient;
+import snd.CProtocol;
 import snd.RawData;
 
 public class ClientTester implements Dosth {
@@ -23,13 +24,6 @@ public class ClientTester implements Dosth {
 		nc.open();		
 		connector = nc.addConnector("127.0.0.1", 10075);
 		new Thread(nc).start();
-		
-		/*
-		while(true)
-		{
-			nc.run();
-		}
-		*/
 	}
 	
 	public void disconnect()
@@ -53,8 +47,8 @@ public class ClientTester implements Dosth {
 		if(connector == null)
 			return;
 
-		RawData rp = new RawData(str.getBytes());
-		connector.send(rp.getSendData());
+		CProtocol cp = new CProtocol(str);
+		connector.send(cp);
 	}
 	
 	public static void main(String[] args) {
