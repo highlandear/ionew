@@ -25,7 +25,7 @@ public class SProtocol extends Protocol {
 
 	@Override
 	public void process() {
-		Logger.log("I got mes from Server: " + msg);
+		Logger.log("I got msg from Server: [" + msg + "]");
 	}
 
 }

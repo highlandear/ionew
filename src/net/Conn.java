@@ -12,7 +12,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import config.TPoolConfig;
-import helper.Logger;
 import snd.Message;
 import snd.Protocol;
 import snd.RawData;
@@ -60,7 +59,7 @@ public abstract class Conn implements Runnable {
 
 	public void enableWrite() {
 		if (selKey == null) {
-			// Logger.log("key is null");
+			// throw new IOException("selkey is null");
 			return;
 		}
 		selKey.interestOps(selKey.interestOps() | SelectionKey.OP_WRITE);
@@ -77,7 +76,7 @@ public abstract class Conn implements Runnable {
 
 	public void close() throws IOException {
 		if (selKey == null) {
-			// Logger.log("key is null");
+			// throw new IOException("selkey is null");
 			return;
 		}
 		selKey.channel().close();
@@ -101,6 +100,11 @@ public abstract class Conn implements Runnable {
 		}
 
 		pool.execute(this);
+	}
+	
+	public void execute(Runnable r)
+	{
+		pool.execute(r);
 	}
 
 	public void decode(ByteBuffer bb) {

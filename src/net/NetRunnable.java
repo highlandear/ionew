@@ -42,7 +42,7 @@ public abstract class NetRunnable implements Runnable {
 	abstract public void onConnectable(SelectionKey k) throws IOException;
 	@Override
 	public void run() {
-		Logger.log(name + " _______RUNNING_____");
+		Logger.log(name + "Net start");
 		while (running) {
 			try {
 				sel.selectedKeys().clear();
@@ -56,8 +56,7 @@ public abstract class NetRunnable implements Runnable {
 						try {
 							onReadable(k);
 						} catch (IOException e) {
-							//e.printStackTrace();
-							onBadRead(k);
+							onBadRead(k, e);
 						}
 					} else if (k.isWritable()) {
 						try {
@@ -82,7 +81,7 @@ public abstract class NetRunnable implements Runnable {
 				}
 			}
 		}
-		Logger.log("_____NET_STOP____");
+		Logger.log("net stop");
 	}
 
 
@@ -104,7 +103,8 @@ public abstract class NetRunnable implements Runnable {
 		k.interestOps(SelectionKey.OP_READ);
 	}
 
-	private void onBadRead(SelectionKey k) throws IOException {
+	private void onBadRead(SelectionKey k, IOException e) throws IOException {
+		// e.printStackTrace();
 		SocketChannel ch = (SocketChannel) k.channel();
 		Logger.log(ch.getRemoteAddress() + "：connect OVER!");
 		onClose(k);

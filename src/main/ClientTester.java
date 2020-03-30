@@ -5,7 +5,6 @@ import helper.Dosth;
 import net.Connector;
 import net.NioClient;
 import snd.CProtocol;
-import snd.RawData;
 
 public class ClientTester implements Dosth {
 	

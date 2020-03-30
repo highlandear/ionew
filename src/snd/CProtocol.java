@@ -24,7 +24,7 @@ public class CProtocol extends Protocol {
 
 	@Override
 	public void process() {
-		Logger.log("i got some msg from Client: " +  msg + " and i send back som info");
+		Logger.log("i got some msg from Client: [" +  msg + "] and i send back some info");
 		this.getPeer().send(new SProtocol("info from Server"));
 	}
 

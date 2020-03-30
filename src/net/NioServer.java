@@ -10,7 +10,7 @@ import helper.Logger;
 import snd.RawData;
 
 public class NioServer extends NetRunnable {
-	private Conn  connection = null;
+	private Conn  connection = null; //TODO: session. just a connection to send now
 
 	public NioServer(String name, int p) {
 		super(name);
@@ -62,7 +62,7 @@ public class NioServer extends NetRunnable {
 		ce.attachKey(channel.register(sel, SelectionKey.OP_READ, ce));
 
 		this.connection = ce;
-		Logger.log(channel.getRemoteAddress() + "------> ");
+		Logger.log(channel.getRemoteAddress() + " linked now");
 		
 	}
 

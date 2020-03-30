@@ -27,7 +27,7 @@ public class Message {
 			p.setPeer(peer);
 		}
 		
-		p.run();
+		peer.execute(p);
 	}
 	
 }
