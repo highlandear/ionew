@@ -6,28 +6,22 @@ import net.Conn;
 
 public class Message {
 
-	
-	public static void decode(Conn peer, byte [] data)
-	{
-	
+	public static void decode(Conn peer, byte[] data) {
+
 		Protocol p = null;
 		ByteBuffer bf = ByteBuffer.wrap(data);
 		int id = bf.getInt();
-		
-		byte [] bs = new byte[bf.remaining()];
+
+		byte[] bs = new byte[bf.remaining()];
 		bf.get(bs);
-		if(id == 101)
-		{
+		if (id == 101)
 			p = new CProtocol(new String(bs));
-			p.setPeer(peer);			
-		}
-		else if(id == 102)
-		{
+
+		else if (id == 102)
 			p = new SProtocol(new String(bs));
-			p.setPeer(peer);
-		}
-		
+
+		p.setPeer(peer);
 		peer.execute(p);
 	}
-	
+
 }

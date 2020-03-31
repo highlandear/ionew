@@ -8,14 +8,13 @@ public class CProtocol extends Protocol {
 	static int id = 101;
 	String msg;
 
-	public CProtocol(String m)
-	{
+	public CProtocol(String m) {
 		msg = m;
 	}
-	
+
 	@Override
 	public RawData toRawData() {
-		ByteBuffer bf = ByteBuffer.allocate(4+msg.length());
+		ByteBuffer bf = ByteBuffer.allocate(4 + msg.length());
 		bf.putInt(id);
 		bf.put(msg.getBytes());
 		bf.flip();
@@ -24,7 +23,7 @@ public class CProtocol extends Protocol {
 
 	@Override
 	public void process() {
-		Logger.log("i got some msg from Client: [" +  msg + "] and i send back some info");
+		Logger.log("i got some msg from Client: [" + msg + "] and i send back some info");
 		this.getPeer().send(new SProtocol("info from Server"));
 	}
 
